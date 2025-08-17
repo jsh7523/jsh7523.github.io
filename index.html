@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>活動簽到系統</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        #interactive.viewport {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        #interactive.viewport canvas,
+        #interactive.viewport video {
+            width: 100%;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #333;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>活動簽到</h1>
+    <p>請將條碼對準相機，以便自動掃描。</p>
+    
+    <div id="interactive" class="viewport"></div>
+    
+    <div id="result"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // 初始化 QuaggaJS
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#interactive') // 將影像顯示在這個元素中
+                },
+                decoder: {
+                    readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"] // 你想掃描的條碼類型
+                }
+            }, function(err) {
+                if (err) {
+                    console.error("初始化 QuaggaJS 錯誤:", err);
+                    document.getElementById('result').textContent = '無法啟動相機。請檢查您的瀏覽器權限。';
+                    document.getElementById('result').className = 'error';
+                    return;
+                }
+                console.log("QuaggaJS 啟動成功！");
+                Quagga.start();
+            });
+
+            // 當掃描到條碼時
+            Quagga.onDetected(function(result) {
+                const code = result.codeResult.code;
+                console.log("掃描到的條碼:", code);
+
+                // 在此處處理簽到邏輯
+                // 這裡我們只是簡單地顯示掃描到的結果
+                document.getElementById('result').textContent = '簽到成功！學員編號：' + code;
+                document.getElementById('result').className = 'success';
+                
+                // 掃描到後停止相機，避免重複掃描
+                Quagga.stop();
+
+                // 實際應用中，你可能需要將 code 發送到伺服器進行驗證
+                // 例如：
+                // fetch('你的簽到API網址', {
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/json',
+                //     },
+                //     body: JSON.stringify({ barcode: code }),
+                // })
+                // .then(response => response.json())
+                // .then(data => {
+                //     if (data.status === 'success') {
+                //         document.getElementById('result').textContent = '簽到成功！';
+                //         document.getElementById('result').className = 'success';
+                //     } else {
+                //         document.getElementById('result').textContent = '簽到失敗：' + data.message;
+                //         document.getElementById('result').className = 'error';
+                //     }
+                // });
+            });
+        });
+    </script>
+
+</body>
+</html>
