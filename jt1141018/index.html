@@ -1,1 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>活動簽到與條碼工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        #interactive.viewport {
+            position: relative;
+            width: 100%;
+        }
+        #interactive.viewport canvas,
+        #interactive.viewport video {
+            width: 100%;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #ccc;
+            margin: 40px 0;
+        }
+        #barcode-input {
+            width: 80%;
+            padding: 10px;
+            font-size: 1em;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #generate-btn {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #barcode-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
 
+    <div class="container">
+        <h1>條碼工具</h1>
+
+        <h2>條碼掃描</h2>
+        <p>請將條碼對準相機，以便自動掃描。</p>
+        
+        <div id="interactive" class="viewport"></div>
+        <div id="result"></div>
+        
+        <hr>
+
+        <h2>條碼產生</h2>
+        <p>輸入文字或數字，即可產生條碼。</p>
+        <input type="text" id="barcode-input" placeholder="請輸入條碼內容">
+        <button id="generate-btn">產生條碼</button>
+        
+        <div id="barcode-container">
+            <svg id="barcode"></svg>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // --- 條碼掃描功能 ---
+            
+            let validBarcodes = [];
+            const resultElement = document.getElementById('result');
+
+            // 第1步: 從 GitHub 載入條碼清單
+            resultElement.textContent = '正在載入條碼清單...';
+            fetch('barcodes.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('無法載入條碼清單，請檢查檔案是否存在。');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    validBarcodes = data.valid_barcodes;
+                    resultElement.textContent = '條碼清單載入完成，請開始掃描。';
+                    resultElement.className = '';
+                    
+                    // 第2步: 初始化 QuaggaJS
+                    Quagga.init({
+                        inputStream: {
+                            name: "Live",
+                            type: "LiveStream",
+                            target: document.querySelector('#interactive')
+                        },
+                        decoder: {
+                            readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"]
+                        }
+                    }, function(err) {
+                        if (err) {
+                            console.error("初始化 QuaggaJS 錯誤:", err);
+                            resultElement.textContent = '無法啟動相機。請檢查您的瀏覽器權限。';
+                            resultElement.className = 'error';
+                            return;
+                        }
+                        console.log("QuaggaJS 啟動成功！");
+                        Quagga.start();
+                    });
+
+                    // 第3步: 當掃描到條碼時進行比對
+                    Quagga.onDetected(function(result) {
+                        const code = result.codeResult.code;
+                        console.log("掃描到的條碼:", code);
+
+                        if (validBarcodes.includes(code)) {
+                            resultElement.textContent = '簽到成功！編號：' + code;
+                            resultElement.className = 'success';
+                        } else {
+                            resultElement.textContent = '簽到失敗！無效的條碼：' + code;
+                            resultElement.className = 'error';
+                        }
+                        
+                        Quagga.stop();
+                    });
+                })
+                .catch(error => {
+                    console.error('載入或解析 JSON 檔案錯誤:', error);
+                    resultElement.textContent = '發生錯誤：' + error.message;
+                    resultElement.className = 'error';
+                });
+
+            // --- 條碼產生功能 ---
+            const barcodeInput = document.getElementById('barcode-input');
+            const generateBtn = document.getElementById('generate-btn');
+
+            // 監聽按鈕點擊事件
+            generateBtn.addEventListener('click', function() {
+                const inputValue = barcodeInput.value;
+                if (inputValue) {
+                    JsBarcode("#barcode", inputValue, {
+                        format: "CODE128", // 條碼類型，這裡使用最常見的 CODE128
+                        displayValue: true // 顯示條碼下方的文字
+                    });
+                } else {
+                    alert("請輸入條碼內容！");
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
