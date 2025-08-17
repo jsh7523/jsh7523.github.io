@@ -24,24 +24,12 @@
         #interactive.viewport {
             position: relative;
             width: 100%;
-            min-height: 250px; 
-            border: 2px solid #333;
-            border-radius: 8px;
         }
         #interactive.viewport canvas,
         #interactive.viewport video {
             width: 100%;
-            height: 100%;
+            border: 2px solid #333;
             border-radius: 8px;
-            /* 預設隱藏，由 JS 控制顯示 */
-            display: none; 
-        }
-        #interactive .message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #777;
         }
         #result {
             margin-top: 20px;
@@ -83,9 +71,6 @@
             display: flex;
             justify-content: center;
         }
-        #barcode {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -96,9 +81,7 @@
         <h2>條碼掃描</h2>
         <p>請將條碼對準相機，以便自動掃描。</p>
         
-        <div id="interactive" class="viewport">
-            <span class="message">請等待相機啟動...</span>
-        </div>
+        <div id="interactive" class="viewport"></div>
         <div id="result"></div>
         
         <hr>
@@ -123,8 +106,8 @@
             
             let validBarcodes = [];
             const resultElement = document.getElementById('result');
-            const interactiveElement = document.getElementById('interactive');
 
+            // 第1步: 從 GitHub 載入條碼清單
             resultElement.textContent = '正在載入條碼清單...';
             fetch('barcodes.json')
                 .then(response => {
@@ -138,34 +121,28 @@
                     resultElement.textContent = '條碼清單載入完成，請開始掃描。';
                     resultElement.className = '';
                     
+                    // 第2步: 初始化 QuaggaJS
                     Quagga.init({
                         inputStream: {
                             name: "Live",
                             type: "LiveStream",
-                            target: interactiveElement
+                            target: document.querySelector('#interactive')
                         },
                         decoder: {
                             readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"]
                         }
                     }, function(err) {
-                        const messageElement = interactiveElement.querySelector('.message');
-                        if (messageElement) {
-                            messageElement.remove();
-                        }
-                        
-                        // 檢查是否有錯誤
                         if (err) {
                             console.error("初始化 QuaggaJS 錯誤:", err);
-                            resultElement.textContent = '無法啟動相機。請檢查您的瀏覽器權限或重新整理網頁。';
+                            resultElement.textContent = '無法啟動相機。請檢查您的瀏覽器權限。';
                             resultElement.className = 'error';
                             return;
                         }
                         console.log("QuaggaJS 啟動成功！");
-                        // 成功後顯示 video 元素
-                        interactiveElement.querySelector('video').style.display = 'block';
-                        resultElement.textContent = '相機已準備就緒，可以開始掃描。';
+                        Quagga.start();
                     });
 
+                    // 第3步: 當掃描到條碼時進行比對
                     Quagga.onDetected(function(result) {
                         const code = result.codeResult.code;
                         console.log("掃描到的條碼:", code);
@@ -190,16 +167,15 @@
             // --- 條碼產生功能 ---
             const barcodeInput = document.getElementById('barcode-input');
             const generateBtn = document.getElementById('generate-btn');
-            const barcodeElement = document.getElementById('barcode');
 
+            // 監聽按鈕點擊事件
             generateBtn.addEventListener('click', function() {
                 const inputValue = barcodeInput.value;
                 if (inputValue) {
                     JsBarcode("#barcode", inputValue, {
-                        format: "CODE128",
-                        displayValue: true
+                        format: "CODE128", // 條碼類型，這裡使用最常見的 CODE128
+                        displayValue: true // 顯示條碼下方的文字
                     });
-                    barcodeElement.style.display = 'block'; 
                 } else {
                     alert("請輸入條碼內容！");
                 }
