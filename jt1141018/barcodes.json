@@ -1,0 +1,9 @@
+{
+  "valid_barcodes": [
+    "123456789012",
+    "987654321098",
+    "CODE39-A1B2",
+    "PARTICIPANT-001",
+    "PARTICIPANT-002"
+  ]
+}
