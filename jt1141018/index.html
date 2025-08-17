@@ -24,7 +24,6 @@
         #interactive.viewport {
             position: relative;
             width: 100%;
-            /* 添加最小高度來確保方框可見 */
             min-height: 250px; 
             border: 2px solid #333;
             border-radius: 8px;
@@ -34,7 +33,7 @@
             width: 100%;
             height: 100%;
             border-radius: 8px;
-            display: none; /* 預設隱藏，待 QuaggaJS 啟動後顯示 */
+            display: none; 
         }
         #interactive .message {
             position: absolute;
@@ -83,6 +82,10 @@
             display: flex;
             justify-content: center;
         }
+        /* --- 新增 CSS 規則 --- */
+        #barcode {
+            display: none; /* 預設隱藏條碼，避免顯示空白方框 */
+        }
     </style>
 </head>
 <body>
@@ -122,7 +125,6 @@
             const resultElement = document.getElementById('result');
             const interactiveElement = document.getElementById('interactive');
 
-            // 第1步: 從 GitHub 載入條碼清單
             resultElement.textContent = '正在載入條碼清單...';
             fetch('barcodes.json')
                 .then(response => {
@@ -136,18 +138,16 @@
                     resultElement.textContent = '條碼清單載入完成，請開始掃描。';
                     resultElement.className = '';
                     
-                    // 第2步: 初始化 QuaggaJS
                     Quagga.init({
                         inputStream: {
                             name: "Live",
                             type: "LiveStream",
-                            target: interactiveElement // 指向我們的容器
+                            target: interactiveElement
                         },
                         decoder: {
                             readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"]
                         }
                     }, function(err) {
-                        // 移除載入訊息
                         const messageElement = interactiveElement.querySelector('.message');
                         if (messageElement) {
                             messageElement.remove();
@@ -160,11 +160,9 @@
                             return;
                         }
                         console.log("QuaggaJS 啟動成功！");
-                        // 成功後顯示 video 元素
                         interactiveElement.querySelector('video').style.display = 'block';
                     });
 
-                    // 第3步: 當掃描到條碼時進行比對
                     Quagga.onDetected(function(result) {
                         const code = result.codeResult.code;
                         console.log("掃描到的條碼:", code);
@@ -189,6 +187,7 @@
             // --- 條碼產生功能 ---
             const barcodeInput = document.getElementById('barcode-input');
             const generateBtn = document.getElementById('generate-btn');
+            const barcodeElement = document.getElementById('barcode');
 
             generateBtn.addEventListener('click', function() {
                 const inputValue = barcodeInput.value;
@@ -197,6 +196,8 @@
                         format: "CODE128",
                         displayValue: true
                     });
+                    // 產生後再顯示條碼
+                    barcodeElement.style.display = 'block'; 
                 } else {
                     alert("請輸入條碼內容！");
                 }
