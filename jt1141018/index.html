@@ -24,12 +24,24 @@
         #interactive.viewport {
             position: relative;
             width: 100%;
+            /* 添加最小高度來確保方框可見 */
+            min-height: 250px; 
+            border: 2px solid #333;
+            border-radius: 8px;
         }
         #interactive.viewport canvas,
         #interactive.viewport video {
             width: 100%;
-            border: 2px solid #333;
+            height: 100%;
             border-radius: 8px;
+            display: none; /* 預設隱藏，待 QuaggaJS 啟動後顯示 */
+        }
+        #interactive .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #777;
         }
         #result {
             margin-top: 20px;
@@ -81,7 +93,9 @@
         <h2>條碼掃描</h2>
         <p>請將條碼對準相機，以便自動掃描。</p>
         
-        <div id="interactive" class="viewport"></div>
+        <div id="interactive" class="viewport">
+            <span class="message">請等待相機啟動...</span>
+        </div>
         <div id="result"></div>
         
         <hr>
@@ -106,6 +120,7 @@
             
             let validBarcodes = [];
             const resultElement = document.getElementById('result');
+            const interactiveElement = document.getElementById('interactive');
 
             // 第1步: 從 GitHub 載入條碼清單
             resultElement.textContent = '正在載入條碼清單...';
@@ -126,12 +141,18 @@
                         inputStream: {
                             name: "Live",
                             type: "LiveStream",
-                            target: document.querySelector('#interactive')
+                            target: interactiveElement // 指向我們的容器
                         },
                         decoder: {
                             readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"]
                         }
                     }, function(err) {
+                        // 移除載入訊息
+                        const messageElement = interactiveElement.querySelector('.message');
+                        if (messageElement) {
+                            messageElement.remove();
+                        }
+                        
                         if (err) {
                             console.error("初始化 QuaggaJS 錯誤:", err);
                             resultElement.textContent = '無法啟動相機。請檢查您的瀏覽器權限。';
@@ -139,7 +160,8 @@
                             return;
                         }
                         console.log("QuaggaJS 啟動成功！");
-                        Quagga.start();
+                        // 成功後顯示 video 元素
+                        interactiveElement.querySelector('video').style.display = 'block';
                     });
 
                     // 第3步: 當掃描到條碼時進行比對
@@ -168,13 +190,12 @@
             const barcodeInput = document.getElementById('barcode-input');
             const generateBtn = document.getElementById('generate-btn');
 
-            // 監聽按鈕點擊事件
             generateBtn.addEventListener('click', function() {
                 const inputValue = barcodeInput.value;
                 if (inputValue) {
                     JsBarcode("#barcode", inputValue, {
-                        format: "CODE128", // 條碼類型，這裡使用最常見的 CODE128
-                        displayValue: true // 顯示條碼下方的文字
+                        format: "CODE128",
+                        displayValue: true
                     });
                 } else {
                     alert("請輸入條碼內容！");
